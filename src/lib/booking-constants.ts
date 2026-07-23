@@ -9,6 +9,8 @@ export const BUSINESS_HOURS = {
   slotMinutes: 30,
 } as const;
 
+export const APP_TIME_ZONE = "America/Sao_Paulo";
+
 export type AppointmentStatus = "scheduled" | "confirmed" | "completed" | "cancelled";
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
@@ -41,9 +43,14 @@ export function addMinutes(date: Date, minutes: number): Date {
 }
 
 export function getBusinessClose(date: Date): Date {
-  const close = new Date(date);
-  close.setHours(BUSINESS_HOURS.endHour, 0, 0, 0);
-  return close;
+  const datePart = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+
+  return new Date(`${datePart}T${String(BUSINESS_HOURS.endHour).padStart(2, "0")}:00:00-03:00`);
 }
 
 export function intervalsOverlap(startA: Date, endA: Date, startB: Date, endB: Date): boolean {
@@ -51,10 +58,12 @@ export function intervalsOverlap(startA: Date, endA: Date, startB: Date, endB: D
 }
 
 export function formatDateISO(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
 export function formatTime(date: Date): string {

@@ -3,7 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
-import { addMinutes, getBusinessClose, intervalsOverlap } from "@/lib/booking-constants";
+import {
+  addMinutes,
+  formatDateISO,
+  getBusinessClose,
+  intervalsOverlap,
+} from "@/lib/booking-constants";
 
 // Cliente publishable server-side para leituras públicas (sem sessão)
 function serverPublic() {
@@ -99,11 +104,7 @@ export const createAppointment = createServerFn({ method: "POST" })
       throw new Error("Estes serviços não cabem no horário de funcionamento.");
     }
 
-    const date = [
-      when.getFullYear(),
-      String(when.getMonth() + 1).padStart(2, "0"),
-      String(when.getDate()).padStart(2, "0"),
-    ].join("-");
+    const date = formatDateISO(when);
     const { data: booked, error: bookedError } = await supabase.rpc("get_booked_slots", {
       _date: date,
     });
