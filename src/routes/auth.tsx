@@ -50,8 +50,7 @@ function AuthPage() {
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const redirectTo =
-      typeof window !== "undefined" ? window.location.origin : undefined;
+    const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -64,9 +63,7 @@ function AuthPage() {
       navigate({ to: "/admin", replace: true });
       return;
     }
-    toast.success(
-      "Conta criada. Confirme seu e-mail antes de entrar.",
-    );
+    toast.success("Conta criada. Confirme seu e-mail antes de entrar.");
   }
 
   return (
@@ -76,9 +73,7 @@ function AuthPage() {
         <Card className="border-border/60 shadow-sm">
           <CardHeader>
             <CardTitle className="text-xl">Área administrativa</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Acesso restrito à equipe.
-            </p>
+            <p className="text-sm text-muted-foreground">Acesso restrito à equipe.</p>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin">
@@ -157,7 +152,7 @@ function FormFields({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          minLength={6}
+          minLength={5}
           autoComplete="current-password"
         />
       </div>
