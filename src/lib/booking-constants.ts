@@ -40,6 +40,25 @@ export function isBusinessDay(date: Date): boolean {
   return (BUSINESS_HOURS.openDays as readonly number[]).includes(date.getDay());
 }
 
+export function addMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60_000);
+}
+
+export function getBusinessClose(date: Date): Date {
+  const close = new Date(date);
+  close.setHours(BUSINESS_HOURS.endHour, 0, 0, 0);
+  return close;
+}
+
+export function intervalsOverlap(
+  startA: Date,
+  endA: Date,
+  startB: Date,
+  endB: Date,
+): boolean {
+  return startA < endB && startB < endA;
+}
+
 export function formatDateISO(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");

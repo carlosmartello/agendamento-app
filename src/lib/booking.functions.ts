@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
+import { addMinutes, getBusinessClose, intervalsOverlap } from "@/lib/booking-constants";
 
 // Cliente publishable server-side para leituras públicas (sem sessão)
 function serverPublic() {
@@ -51,7 +52,10 @@ export const listBookedSlots = createServerFn({ method: "GET" })
       _date: data.date,
     });
     if (error) throw new Error(error.message);
-    return (rows ?? []).map((r) => r.scheduled_at as string);
+    return (rows ?? []).map((r) => ({
+      scheduled_at: r.scheduled_at as string,
+      duration_min: Number(r.duration_min ?? 30),
+    }));
   });
 
 const createSchema = z.object({
@@ -87,14 +91,46 @@ export const createAppointment = createServerFn({ method: "POST" })
     }
 
     // Gera o id no servidor — evita depender de SELECT policy pra retornar o RETURNING
-    const id = crypto.randomUUID();
-    const { error } = await supabase.from("appointments").insert({
-      id,
-      client_name: data.client_name,
-      client_phone: data.client_phone,
-      service_id: data.service_id,
-      scheduled_at: data.scheduled_at,
-      notes: data.notes ?? null,
+    const { data: service, error: serviceError } = await supabase
+      .from("services")
+      .select("duration_min")
+      .eq("id", data.service_id)
+      .eq("active", true)
+      .maybeSingle();
+    if (serviceError) throw new Error(serviceError.message);
+    if (!service) throw new Error("ServiÃ§o invÃ¡lido ou indisponÃ­vel");
+
+    const end = addMinutes(when, service.duration_min);
+    if (end > getBusinessClose(when)) {
+      throw new Error("Este serviÃ§o nÃ£o cabe no horÃ¡rio de funcionamento.");
+    }
+
+    const date = [
+      when.getFullYear(),
+      String(when.getMonth() + 1).padStart(2, "0"),
+      String(when.getDate()).padStart(2, "0"),
+    ].join("-");
+    const { data: booked, error: bookedError } = await supabase.rpc(
+      "get_booked_slots",
+      { _date: date },
+    );
+    if (bookedError) throw new Error(bookedError.message);
+
+    const hasConflict = (booked ?? []).some((slot) => {
+      const bookedStart = new Date(slot.scheduled_at as string);
+      const bookedEnd = addMinutes(bookedStart, Number(slot.duration_min ?? 30));
+      return intervalsOverlap(when, end, bookedStart, bookedEnd);
+    });
+    if (hasConflict) {
+      throw new Error("Este horÃ¡rio conflita com outro agendamento.");
+    }
+
+    const { data: id, error } = await supabase.rpc("create_public_appointment", {
+      _client_name: data.client_name,
+      _client_phone: data.client_phone,
+      _service_id: data.service_id,
+      _scheduled_at: data.scheduled_at,
+      _notes: data.notes ?? null,
     });
 
     if (error) {
@@ -106,7 +142,7 @@ export const createAppointment = createServerFn({ method: "POST" })
       }
       throw new Error(error.message);
     }
-    return { id };
+    return { id: id as string };
   });
 
 export const getConfirmation = createServerFn({ method: "GET" })

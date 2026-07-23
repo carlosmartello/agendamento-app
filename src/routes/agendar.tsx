@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -27,6 +27,9 @@ import {
   formatPhone,
   formatTime,
   generateDaySlots,
+  addMinutes,
+  getBusinessClose,
+  intervalsOverlap,
   isBusinessDay,
 } from "@/lib/booking-constants";
 
@@ -51,6 +54,7 @@ export const Route = createFileRoute("/agendar")({
 
 function AgendarPage() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [serviceId, setServiceId] = useState<string | null>(null);
@@ -80,8 +84,18 @@ function AgendarPage() {
     enabled: !!dateStr,
   });
 
-  const bookedSet = useMemo(
-    () => new Set(booked.map((b) => new Date(b).getTime())),
+  const selectedService = services.find((s) => s.id === serviceId) ?? null;
+  const selectedDuration = selectedService?.duration_min ?? 0;
+
+  const bookedIntervals = useMemo(
+    () =>
+      booked.map((b) => {
+        const start = new Date(b.scheduled_at);
+        return {
+          start,
+          end: addMinutes(start, b.duration_min),
+        };
+      }),
     [booked],
   );
 
@@ -96,8 +110,9 @@ function AgendarPage() {
   };
   const create = useMutation({
     mutationFn: (payload: CreatePayload) => createFn({ data: payload }),
-    onSuccess: ({ id }) => {
+    onSuccess: async ({ id }) => {
       toast.success("Agendamento realizado!");
+      await qc.invalidateQueries({ queryKey: ["booked-slots"] });
       navigate({
         to: "/agendar/confirmacao/$id",
         params: { id },
@@ -165,7 +180,10 @@ function AgendarPage() {
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => setServiceId(s.id)}
+                  onClick={() => {
+                    setServiceId(s.id);
+                    setSelectedSlot(null);
+                  }}
                   className={cn(
                     "text-left rounded-xl border p-4 transition-all",
                     serviceId === s.id
@@ -249,9 +267,20 @@ function AgendarPage() {
                     </p>
                     <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                       {slots.map((slot) => {
-                        const isBooked = bookedSet.has(slot.getTime());
+                        const slotEnd = addMinutes(slot, selectedDuration || 0);
+                        const exceedsBusinessHours =
+                          !selectedService || slotEnd > getBusinessClose(slot);
+                        const isBooked =
+                          selectedService &&
+                          bookedIntervals.some(({ start, end }) =>
+                            intervalsOverlap(slot, slotEnd, start, end),
+                          );
                         const isPast = slot.getTime() < Date.now();
-                        const disabled = isBooked || isPast;
+                        const disabled =
+                          !selectedService ||
+                          Boolean(isBooked) ||
+                          isPast ||
+                          exceedsBusinessHours;
                         const active =
                           selectedSlot?.getTime() === slot.getTime();
                         return (
@@ -270,7 +299,12 @@ function AgendarPage() {
                             )}
                             aria-label={`Horário ${formatTime(slot)}${isBooked ? " (indisponível)" : ""}`}
                           >
-                            {formatTime(slot)}
+                            <span className="block">{formatTime(slot)}</span>
+                            {selectedService && (
+                              <span className="block text-[10px] font-normal opacity-75">
+                                {formatTime(slotEnd)}
+                              </span>
+                            )}
                           </button>
                         );
                       })}
