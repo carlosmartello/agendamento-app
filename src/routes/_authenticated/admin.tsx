@@ -50,7 +50,7 @@ import {
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Painel — Studio.Agenda" },
+      { title: "Painel - Studio.Agenda" },
       { name: "description", content: "Gestão de agendamentos." },
       { name: "robots", content: "noindex" },
       { property: "og:title", content: "Painel administrativo" },
@@ -90,8 +90,7 @@ function AdminPage() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: (v: { id: string; status: AppointmentStatus }) =>
-      updateFn({ data: v }),
+    mutationFn: (v: { id: string; status: AppointmentStatus }) => updateFn({ data: v }),
     onSuccess: () => {
       toast.success("Status atualizado");
       qc.invalidateQueries({ queryKey: ["appointments"] });
@@ -196,11 +195,7 @@ function AdminPage() {
               </PopoverContent>
             </Popover>
             {date && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDate(undefined)}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setDate(undefined)}>
                 Limpar
               </Button>
             )}
@@ -235,9 +230,7 @@ function AdminPage() {
 
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium text-foreground truncate">
-                        {row.client_name}
-                      </p>
+                      <p className="font-medium text-foreground truncate">{row.client_name}</p>
                       <Badge
                         className={cn(
                           "font-normal",
@@ -248,12 +241,10 @@ function AdminPage() {
                       </Badge>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {row.service?.name} · {formatPhone(row.client_phone)}
+                      {row.service_name} · {row.duration_min} min · {formatPhone(row.client_phone)}
                     </p>
                     {row.notes && (
-                      <p className="mt-1 text-xs text-muted-foreground italic">
-                        “{row.notes}”
-                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground italic">"{row.notes}"</p>
                     )}
                   </div>
 
@@ -289,23 +280,17 @@ function AdminPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {(Object.keys(STATUS_LABELS) as AppointmentStatus[]).map(
-                          (s) => (
-                            <SelectItem key={s} value={s}>
-                              {STATUS_LABELS[s]}
-                            </SelectItem>
-                          ),
-                        )}
+                        {(Object.keys(STATUS_LABELS) as AppointmentStatus[]).map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {STATUS_LABELS[s]}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
 
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="Excluir agendamento"
-                        >
+                        <Button variant="ghost" size="icon" aria-label="Excluir agendamento">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </AlertDialogTrigger>

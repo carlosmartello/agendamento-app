@@ -183,21 +183,9 @@ export const adminListAppointments = createServerFn({ method: "GET" })
   }))
   .handler(async ({ data, context }) => {
     await assertAdmin({ supabase: context.supabase as never, userId: context.userId });
-    let q = context.supabase
-      .from("appointments")
-      .select(
-        "id, client_name, client_phone, scheduled_at, status, notes, created_at, service:services(id,name,duration_min,price_cents)",
-      )
-      .order("scheduled_at", { ascending: true });
-
-    if (data.date) {
-      const start = `${data.date}T00:00:00.000Z`;
-      const endDate = new Date(`${data.date}T00:00:00.000Z`);
-      endDate.setUTCDate(endDate.getUTCDate() + 1);
-      q = q.gte("scheduled_at", start).lt("scheduled_at", endDate.toISOString());
-    }
-
-    const { data: rows, error } = await q;
+    const { data: rows, error } = await context.supabase.rpc("admin_list_appointments", {
+      _date: data.date ?? null,
+    });
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
@@ -317,4 +305,3 @@ export const adminDeleteService = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
-

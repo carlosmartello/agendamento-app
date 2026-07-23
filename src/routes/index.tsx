@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Clock, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Clock, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site-header";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Studio.Agenda — Agende seu horário em segundos" },
+      { title: "Studio.Agenda - Agende seu horário em segundos" },
       {
         name: "description",
         content:
@@ -36,9 +36,11 @@ function Landing() {
             </Link>
             <Link
               to="/auth"
-              className="hidden sm:inline-flex items-center rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors sm:px-3"
+              aria-label="Área administrativa"
             >
-              Área administrativa
+              <LockKeyhole className="h-4 w-4 sm:mr-1.5" />
+              <span className="sr-only sm:not-sr-only">Área administrativa</span>
             </Link>
             <Button asChild size="sm">
               <Link to="/agendar">
@@ -65,8 +67,8 @@ function Landing() {
                 <span className="text-muted-foreground">em menos de um minuto.</span>
               </h1>
               <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Escolha o serviço, o dia e o horário. Sem cadastro, sem senha.
-                Você recebe a confirmação na hora.
+                Escolha o serviço, o dia e o horário. Sem cadastro, sem senha. Você recebe a
+                confirmação na hora.
               </p>
               <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Button asChild size="lg" className="h-12 px-6 text-base">
@@ -104,9 +106,7 @@ function Landing() {
                   className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm"
                 >
                   <Icon className="h-5 w-5 text-foreground" strokeWidth={2} />
-                  <h3 className="mt-4 text-sm font-semibold text-foreground">
-                    {title}
-                  </h3>
+                  <h3 className="mt-4 text-sm font-semibold text-foreground">{title}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{desc}</p>
                 </div>
               ))}
