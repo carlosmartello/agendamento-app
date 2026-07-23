@@ -52,7 +52,7 @@ function AgendarPage() {
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [serviceId, setServiceId] = useState<string | null>(null);
+  const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [date, setDate] = useState<Date | undefined>(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -79,8 +79,10 @@ function AgendarPage() {
     enabled: !!dateStr,
   });
 
-  const selectedService = services.find((s) => s.id === serviceId) ?? null;
-  const selectedDuration = selectedService?.duration_min ?? 0;
+  const selectedServices = services.filter((s) => serviceIds.includes(s.id));
+  const hasSelectedServices = selectedServices.length > 0;
+  const selectedDuration = selectedServices.reduce((sum, s) => sum + s.duration_min, 0);
+  const selectedPrice = selectedServices.reduce((sum, s) => sum + s.price_cents, 0);
 
   const bookedIntervals = useMemo(
     () =>
@@ -100,6 +102,7 @@ function AgendarPage() {
     client_name: string;
     client_phone: string;
     service_id: string;
+    service_ids: string[];
     scheduled_at: string;
     notes?: string;
   };
@@ -118,7 +121,7 @@ function AgendarPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!serviceId) return toast.error("Selecione um serviço");
+    if (!hasSelectedServices) return toast.error("Selecione ao menos um serviço");
     if (!selectedSlot) return toast.error("Selecione um horário");
     const digits = phone.replace(/\D/g, "");
     if (digits.length < 10) return toast.error("Telefone inválido");
@@ -127,7 +130,8 @@ function AgendarPage() {
     create.mutate({
       client_name: name.trim(),
       client_phone: digits,
-      service_id: serviceId,
+      service_id: serviceIds[0],
+      service_ids: serviceIds,
       scheduled_at: selectedSlot.toISOString(),
       notes: notes.trim() || undefined,
     });
@@ -170,12 +174,16 @@ function AgendarPage() {
                   key={s.id}
                   type="button"
                   onClick={() => {
-                    setServiceId(s.id);
+                    setServiceIds((current) =>
+                      current.includes(s.id)
+                        ? current.filter((id) => id !== s.id)
+                        : [...current, s.id],
+                    );
                     setSelectedSlot(null);
                   }}
                   className={cn(
                     "text-left rounded-xl border p-4 transition-all",
-                    serviceId === s.id
+                    serviceIds.includes(s.id)
                       ? "border-foreground bg-secondary ring-1 ring-foreground/10"
                       : "border-border hover:border-foreground/40 bg-card",
                   )}
@@ -194,9 +202,20 @@ function AgendarPage() {
                       {s.description}
                     </p>
                   )}
+                  {serviceIds.includes(s.id) && (
+                    <p className="mt-3 text-xs font-medium text-foreground">Selecionado</p>
+                  )}
                 </button>
               ))}
             </div>
+            {hasSelectedServices && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                {selectedServices.length} serviço
+                {selectedServices.length > 1 ? "s" : ""} selecionado
+                {selectedServices.length > 1 ? "s" : ""}: {selectedDuration} min ·{" "}
+                {formatCurrency(selectedPrice)}
+              </p>
+            )}
           </section>
 
           {/* Data e horário */}
@@ -244,22 +263,29 @@ function AgendarPage() {
                 {date && (
                   <div>
                     <p className="mb-2 text-xs text-muted-foreground">
-                      {bookedLoading ? "Carregando horários..." : "Horários disponíveis"}
+                      {bookedLoading
+                        ? "Carregando horários..."
+                        : hasSelectedServices
+                          ? `Horários disponíveis para ${selectedDuration} min`
+                          : "Selecione ao menos um serviço para ver os horários"}
                     </p>
-                    {selectedService ? (
+                    {hasSelectedServices ? (
                       <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                         {slots.map((slot) => {
                           const slotEnd = addMinutes(slot, selectedDuration || 0);
                           const exceedsBusinessHours =
-                            !selectedService || slotEnd > getBusinessClose(slot);
+                            !hasSelectedServices || slotEnd > getBusinessClose(slot);
                           const isBooked =
-                            selectedService &&
+                            hasSelectedServices &&
                             bookedIntervals.some(({ start, end }) =>
                               intervalsOverlap(slot, slotEnd, start, end),
                             );
                           const isPast = slot.getTime() < Date.now();
                           const disabled =
-                            !selectedService || Boolean(isBooked) || isPast || exceedsBusinessHours;
+                            !hasSelectedServices ||
+                            Boolean(isBooked) ||
+                            isPast ||
+                            exceedsBusinessHours;
                           const active = selectedSlot?.getTime() === slot.getTime();
                           return (
                             <button
@@ -278,7 +304,7 @@ function AgendarPage() {
                               aria-label={`Horário ${formatTime(slot)}${isBooked ? " (indisponível)" : ""}`}
                             >
                               <span className="block">{formatTime(slot)}</span>
-                              {selectedService && (
+                              {hasSelectedServices && (
                                 <span className="block text-[10px] font-normal opacity-75">
                                   {formatTime(slotEnd)}
                                 </span>
@@ -289,7 +315,7 @@ function AgendarPage() {
                       </div>
                     ) : (
                       <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-                        Selecione um serviÃ§o acima para calcular a duraÃ§Ã£o e os horÃ¡rios livres.
+                        Selecione um serviço acima para calcular a duração e os horários livres.
                       </p>
                     )}
                   </div>

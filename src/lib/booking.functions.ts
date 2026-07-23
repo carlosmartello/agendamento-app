@@ -56,6 +56,7 @@ const createSchema = z.object({
   client_name: z.string().trim().min(2, "Nome muito curto").max(100),
   client_phone: z.string().trim().min(10, "Telefone inválido").max(20),
   service_id: z.string().uuid("Serviço inválido"),
+  service_ids: z.array(z.string().uuid()).min(1).max(20),
   scheduled_at: z.string().datetime({ offset: true }),
   notes: z.string().trim().max(500).optional(),
 });
@@ -118,6 +119,7 @@ export const createAppointment = createServerFn({ method: "POST" })
       _client_name: data.client_name,
       _client_phone: data.client_phone,
       _service_id: data.service_id,
+      _service_ids: data.service_ids,
       _scheduled_at: data.scheduled_at,
       _notes: data.notes ?? null,
     });
