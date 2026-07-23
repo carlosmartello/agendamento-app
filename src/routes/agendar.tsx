@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -8,6 +8,15 @@ import { CalendarIcon, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { SiteHeader } from "@/components/site-header";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,12 +41,12 @@ import {
 export const Route = createFileRoute("/agendar")({
   head: () => ({
     meta: [
-      { title: "Agendar horário — Studio.Agenda" },
+      { title: "Agendar horário - Studio.Agenda" },
       {
         name: "description",
         content: "Escolha o serviço, o dia e o horário. Confirmação instantânea.",
       },
-      { property: "og:title", content: "Agendar horário — Studio.Agenda" },
+      { property: "og:title", content: "Agendar horário - Studio.Agenda" },
       {
         property: "og:description",
         content: "Escolha o serviço, o dia e o horário.",
@@ -48,7 +57,6 @@ export const Route = createFileRoute("/agendar")({
 });
 
 function AgendarPage() {
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -62,6 +70,7 @@ function AgendarPage() {
   });
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
 
   const servicesFn = useServerFn(listServices);
   const bookedFn = useServerFn(listBookedSlots);
@@ -108,13 +117,10 @@ function AgendarPage() {
   };
   const create = useMutation({
     mutationFn: (payload: CreatePayload) => createFn({ data: payload }),
-    onSuccess: async ({ id }) => {
-      toast.success("Agendamento realizado!");
+    onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["booked-slots"] });
-      navigate({
-        to: "/agendar/confirmacao/$id",
-        params: { id },
-      });
+      setSelectedSlot(null);
+      setConfirmationOpen(true);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -166,7 +172,7 @@ function AgendarPage() {
           {/* Serviços */}
           <section aria-labelledby="s-service">
             <h2 id="s-service" className="mb-3 text-sm font-medium text-foreground">
-              1. Serviço
+              1. Serviços
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {services.map((s) => (
@@ -386,6 +392,28 @@ function AgendarPage() {
           </div>
         </form>
       </main>
+
+      <AlertDialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Agendamento confirmado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sua reserva foi registrada com sucesso. Os horários disponíveis foram atualizados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={async () => {
+                setConfirmationOpen(false);
+                await qc.invalidateQueries({ queryKey: ["booked-slots"] });
+              }}
+            >
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+

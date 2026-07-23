@@ -81,19 +81,22 @@ export const createAppointment = createServerFn({ method: "POST" })
       throw new Error("Fechado aos domingos");
     }
 
-    // Gera o id no servidor — evita depender de SELECT policy pra retornar o RETURNING
-    const { data: service, error: serviceError } = await supabase
+    // Gera o id no servidor - evita depender de SELECT policy pra retornar o RETURNING
+    const uniqueServiceIds = Array.from(new Set([data.service_id, ...data.service_ids]));
+    const { data: selectedServices, error: serviceError } = await supabase
       .from("services")
-      .select("duration_min")
-      .eq("id", data.service_id)
-      .eq("active", true)
-      .maybeSingle();
+      .select("id, duration_min")
+      .in("id", uniqueServiceIds)
+      .eq("active", true);
     if (serviceError) throw new Error(serviceError.message);
-    if (!service) throw new Error("ServiÃ§o invÃ¡lido ou indisponÃ­vel");
+    if (!selectedServices || selectedServices.length !== uniqueServiceIds.length) {
+      throw new Error("Um ou mais serviços são inválidos ou indisponíveis");
+    }
 
-    const end = addMinutes(when, service.duration_min);
+    const totalDuration = selectedServices.reduce((sum, service) => sum + service.duration_min, 0);
+    const end = addMinutes(when, totalDuration);
     if (end > getBusinessClose(when)) {
-      throw new Error("Este serviÃ§o nÃ£o cabe no horÃ¡rio de funcionamento.");
+      throw new Error("Estes serviços não cabem no horário de funcionamento.");
     }
 
     const date = [
@@ -112,7 +115,7 @@ export const createAppointment = createServerFn({ method: "POST" })
       return intervalsOverlap(when, end, bookedStart, bookedEnd);
     });
     if (hasConflict) {
-      throw new Error("Este horÃ¡rio conflita com outro agendamento.");
+      throw new Error("Este horário conflita com outro agendamento.");
     }
 
     const { data: id, error } = await supabase.rpc("create_public_appointment", {
@@ -314,3 +317,4 @@ export const adminDeleteService = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
