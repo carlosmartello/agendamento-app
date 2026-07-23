@@ -15,15 +15,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import {
   createAppointment,
@@ -72,8 +63,6 @@ function AgendarPage() {
   });
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
-  const [successOpen, setSuccessOpen] = useState(false);
-  const [createdId, setCreatedId] = useState<string | null>(null);
 
   const servicesFn = useServerFn(listServices);
   const bookedFn = useServerFn(listBookedSlots);
@@ -108,8 +97,11 @@ function AgendarPage() {
   const create = useMutation({
     mutationFn: (payload: CreatePayload) => createFn({ data: payload }),
     onSuccess: ({ id }) => {
-      setCreatedId(id);
-      setSuccessOpen(true);
+      toast.success("Agendamento realizado!");
+      navigate({
+        to: "/agendar/confirmacao/$id",
+        params: { id },
+      });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -357,32 +349,6 @@ function AgendarPage() {
         </form>
       </main>
 
-      <AlertDialog open={successOpen} onOpenChange={setSuccessOpen}>
-        <AlertDialogContent className="sm:max-w-md">
-          <AlertDialogHeader className="items-center text-center">
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-500/10 text-emerald-500 mb-3">
-              <Check className="h-6 w-6" />
-            </div>
-            <AlertDialogTitle>Agendamento realizado!</AlertDialogTitle>
-            <AlertDialogDescription>
-              Seu agendamento foi confirmado com sucesso. Clique abaixo para
-              visualizar os detalhes.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="sm:justify-center">
-            <AlertDialogAction
-              onClick={() =>
-                navigate({
-                  to: "/agendar/confirmacao/$id",
-                  params: { id: createdId! },
-                })
-              }
-            >
-              Ver confirmação
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

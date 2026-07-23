@@ -42,7 +42,7 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error("Credenciais inválidas");
+    if (error) return toast.error(error.message || "Credenciais inválidas");
     toast.success("Bem-vindo de volta");
     navigate({ to: "/admin", replace: true });
   }
@@ -52,15 +52,20 @@ function AuthPage() {
     setLoading(true);
     const redirectTo =
       typeof window !== "undefined" ? window.location.origin : undefined;
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: redirectTo },
+      options: { emailRedirectTo: `${redirectTo}/admin` },
     });
     setLoading(false);
     if (error) return toast.error(error.message);
+    if (data.session) {
+      toast.success("Conta criada. Abrindo painel administrativo.");
+      navigate({ to: "/admin", replace: true });
+      return;
+    }
     toast.success(
-      "Conta criada. O primeiro usuário torna-se administrador automaticamente.",
+      "Conta criada. Confirme seu e-mail antes de entrar.",
     );
   }
 
