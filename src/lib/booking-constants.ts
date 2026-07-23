@@ -9,11 +9,7 @@ export const BUSINESS_HOURS = {
   slotMinutes: 30,
 } as const;
 
-export type AppointmentStatus =
-  | "scheduled"
-  | "confirmed"
-  | "completed"
-  | "cancelled";
+export type AppointmentStatus = "scheduled" | "confirmed" | "completed" | "cancelled";
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
   scheduled: "Agendado",
@@ -50,12 +46,7 @@ export function getBusinessClose(date: Date): Date {
   return close;
 }
 
-export function intervalsOverlap(
-  startA: Date,
-  endA: Date,
-  startB: Date,
-  endB: Date,
-): boolean {
+export function intervalsOverlap(startA: Date, endA: Date, startB: Date, endB: Date): boolean {
   return startA < endB && startB < endA;
 }
 

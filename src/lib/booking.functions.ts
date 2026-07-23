@@ -8,9 +8,7 @@ import { addMinutes, getBusinessClose, intervalsOverlap } from "@/lib/booking-co
 // Cliente publishable server-side para leituras públicas (sem sessão)
 function serverPublic() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!;
-  const key =
-    process.env.SUPABASE_PUBLISHABLE_KEY ??
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
   return createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
     global: {
@@ -27,22 +25,18 @@ function serverPublic() {
 
 // ---------- Público ----------
 
-export const listServices = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const supabase = serverPublic();
-    const { data, error } = await supabase
-      .from("services")
-      .select("id, name, description, duration_min, price_cents")
-      .eq("active", true)
-      .order("price_cents", { ascending: true });
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  },
-);
+export const listServices = createServerFn({ method: "GET" }).handler(async () => {
+  const supabase = serverPublic();
+  const { data, error } = await supabase
+    .from("services")
+    .select("id, name, description, duration_min, price_cents")
+    .eq("active", true)
+    .order("price_cents", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+});
 
-const dateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
 
 export const listBookedSlots = createServerFn({ method: "GET" })
   .inputValidator((d: { date: string }) => ({ date: dateSchema.parse(d.date) }))
@@ -60,11 +54,7 @@ export const listBookedSlots = createServerFn({ method: "GET" })
 
 const createSchema = z.object({
   client_name: z.string().trim().min(2, "Nome muito curto").max(100),
-  client_phone: z
-    .string()
-    .trim()
-    .min(10, "Telefone inválido")
-    .max(20),
+  client_phone: z.string().trim().min(10, "Telefone inválido").max(20),
   service_id: z.string().uuid("Serviço inválido"),
   scheduled_at: z.string().datetime({ offset: true }),
   notes: z.string().trim().max(500).optional(),
@@ -110,10 +100,9 @@ export const createAppointment = createServerFn({ method: "POST" })
       String(when.getMonth() + 1).padStart(2, "0"),
       String(when.getDate()).padStart(2, "0"),
     ].join("-");
-    const { data: booked, error: bookedError } = await supabase.rpc(
-      "get_booked_slots",
-      { _date: date },
-    );
+    const { data: booked, error: bookedError } = await supabase.rpc("get_booked_slots", {
+      _date: date,
+    });
     if (bookedError) throw new Error(bookedError.message);
 
     const hasConflict = (booked ?? []).some((slot) => {
@@ -136,9 +125,7 @@ export const createAppointment = createServerFn({ method: "POST" })
     if (error) {
       // Índice único = conflito de horário
       if (error.code === "23505") {
-        throw new Error(
-          "Este horário acabou de ser reservado. Escolha outro.",
-        );
+        throw new Error("Este horário acabou de ser reservado. Escolha outro.");
       }
       throw new Error(error.message);
     }
@@ -151,10 +138,9 @@ export const getConfirmation = createServerFn({ method: "GET" })
   }))
   .handler(async ({ data }) => {
     const supabase = serverPublic();
-    const { data: rows, error } = await supabase.rpc(
-      "get_appointment_confirmation",
-      { _id: data.id },
-    );
+    const { data: rows, error } = await supabase.rpc("get_appointment_confirmation", {
+      _id: data.id,
+    });
     if (error) throw new Error(error.message);
     return rows?.[0] ?? null;
   });
@@ -165,20 +151,16 @@ export const searchAppointmentsByName = createServerFn({ method: "GET" })
   }))
   .handler(async ({ data }) => {
     const supabase = serverPublic();
-    const { data: rows, error } = await supabase.rpc(
-      "search_appointments_by_name",
-      { _name: data.name },
-    );
+    const { data: rows, error } = await supabase.rpc("search_appointments_by_name", {
+      _name: data.name,
+    });
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
 
 // ---------- Admin ----------
 
-async function assertAdmin(ctx: {
-  supabase: ReturnType<typeof serverPublic>;
-  userId: string;
-}) {
+async function assertAdmin(ctx: { supabase: ReturnType<typeof serverPublic>; userId: string }) {
   const { data, error } = await ctx.supabase
     .from("user_roles")
     .select("role")
@@ -215,12 +197,7 @@ export const adminListAppointments = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
-const statusSchema = z.enum([
-  "scheduled",
-  "confirmed",
-  "completed",
-  "cancelled",
-]);
+const statusSchema = z.enum(["scheduled", "confirmed", "completed", "cancelled"]);
 
 export const adminUpdateStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -245,10 +222,7 @@ export const adminDeleteAppointment = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data, context }) => {
     await assertAdmin({ supabase: context.supabase as never, userId: context.userId });
-    const { error } = await context.supabase
-      .from("appointments")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await context.supabase.from("appointments").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -305,9 +279,7 @@ export const adminCreateService = createServerFn({ method: "POST" })
 
 export const adminUpdateService = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    serviceSchema.extend({ id: z.string().uuid() }).parse(d),
-  )
+  .inputValidator((d: unknown) => serviceSchema.extend({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin({ supabase: context.supabase as never, userId: context.userId });
     const { error } = await context.supabase
@@ -329,10 +301,7 @@ export const adminDeleteService = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => ({ id: z.string().uuid().parse(d.id) }))
   .handler(async ({ data, context }) => {
     await assertAdmin({ supabase: context.supabase as never, userId: context.userId });
-    const { error } = await context.supabase
-      .from("services")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await context.supabase.from("services").delete().eq("id", data.id);
     if (error) {
       if (error.code === "23503") {
         throw new Error(

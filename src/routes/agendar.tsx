@@ -16,11 +16,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import {
-  createAppointment,
-  listBookedSlots,
-  listServices,
-} from "@/lib/booking.functions";
+import { createAppointment, listBookedSlots, listServices } from "@/lib/booking.functions";
 import {
   formatCurrency,
   formatDateISO,
@@ -39,8 +35,7 @@ export const Route = createFileRoute("/agendar")({
       { title: "Agendar horário — Studio.Agenda" },
       {
         name: "description",
-        content:
-          "Escolha o serviço, o dia e o horário. Confirmação instantânea.",
+        content: "Escolha o serviço, o dia e o horário. Confirmação instantânea.",
       },
       { property: "og:title", content: "Agendar horário — Studio.Agenda" },
       {
@@ -143,16 +138,10 @@ function AgendarPage() {
       <SiteHeader
         right={
           <>
-            <Link
-              to="/consultar"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
+            <Link to="/consultar" className="text-sm text-muted-foreground hover:text-foreground">
               Consultar
             </Link>
-            <Link
-              to="/"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
+            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
               Voltar
             </Link>
           </>
@@ -193,12 +182,8 @@ function AgendarPage() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-medium text-foreground truncate">
-                        {s.name}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {s.duration_min} min
-                      </p>
+                      <p className="font-medium text-foreground truncate">{s.name}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{s.duration_min} min</p>
                     </div>
                     <span className="shrink-0 text-sm font-semibold text-foreground">
                       {formatCurrency(s.price_cents)}
@@ -232,9 +217,7 @@ function AgendarPage() {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date
-                        ? format(date, "PPP", { locale: ptBR })
-                        : "Escolha a data"}
+                      {date ? format(date, "PPP", { locale: ptBR }) : "Escolha a data"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -261,54 +244,54 @@ function AgendarPage() {
                 {date && (
                   <div>
                     <p className="mb-2 text-xs text-muted-foreground">
-                      {bookedLoading
-                        ? "Carregando horários..."
-                        : "Horários disponíveis"}
+                      {bookedLoading ? "Carregando horários..." : "Horários disponíveis"}
                     </p>
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                      {slots.map((slot) => {
-                        const slotEnd = addMinutes(slot, selectedDuration || 0);
-                        const exceedsBusinessHours =
-                          !selectedService || slotEnd > getBusinessClose(slot);
-                        const isBooked =
-                          selectedService &&
-                          bookedIntervals.some(({ start, end }) =>
-                            intervalsOverlap(slot, slotEnd, start, end),
+                    {selectedService ? (
+                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                        {slots.map((slot) => {
+                          const slotEnd = addMinutes(slot, selectedDuration || 0);
+                          const exceedsBusinessHours =
+                            !selectedService || slotEnd > getBusinessClose(slot);
+                          const isBooked =
+                            selectedService &&
+                            bookedIntervals.some(({ start, end }) =>
+                              intervalsOverlap(slot, slotEnd, start, end),
+                            );
+                          const isPast = slot.getTime() < Date.now();
+                          const disabled =
+                            !selectedService || Boolean(isBooked) || isPast || exceedsBusinessHours;
+                          const active = selectedSlot?.getTime() === slot.getTime();
+                          return (
+                            <button
+                              key={slot.getTime()}
+                              type="button"
+                              disabled={disabled}
+                              onClick={() => setSelectedSlot(slot)}
+                              className={cn(
+                                "rounded-lg border py-2 text-sm font-medium transition-colors",
+                                active
+                                  ? "border-foreground bg-foreground text-background"
+                                  : disabled
+                                    ? "border-border/50 bg-muted/40 text-muted-foreground/50 cursor-not-allowed line-through"
+                                    : "border-border bg-card text-foreground hover:border-foreground/60",
+                              )}
+                              aria-label={`Horário ${formatTime(slot)}${isBooked ? " (indisponível)" : ""}`}
+                            >
+                              <span className="block">{formatTime(slot)}</span>
+                              {selectedService && (
+                                <span className="block text-[10px] font-normal opacity-75">
+                                  {formatTime(slotEnd)}
+                                </span>
+                              )}
+                            </button>
                           );
-                        const isPast = slot.getTime() < Date.now();
-                        const disabled =
-                          !selectedService ||
-                          Boolean(isBooked) ||
-                          isPast ||
-                          exceedsBusinessHours;
-                        const active =
-                          selectedSlot?.getTime() === slot.getTime();
-                        return (
-                          <button
-                            key={slot.getTime()}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => setSelectedSlot(slot)}
-                            className={cn(
-                              "rounded-lg border py-2 text-sm font-medium transition-colors",
-                              active
-                                ? "border-foreground bg-foreground text-background"
-                                : disabled
-                                  ? "border-border/50 bg-muted/40 text-muted-foreground/50 cursor-not-allowed line-through"
-                                  : "border-border bg-card text-foreground hover:border-foreground/60",
-                            )}
-                            aria-label={`Horário ${formatTime(slot)}${isBooked ? " (indisponível)" : ""}`}
-                          >
-                            <span className="block">{formatTime(slot)}</span>
-                            {selectedService && (
-                              <span className="block text-[10px] font-normal opacity-75">
-                                {formatTime(slotEnd)}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
+                        })}
+                      </div>
+                    ) : (
+                      <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                        Selecione um serviÃ§o acima para calcular a duraÃ§Ã£o e os horÃ¡rios livres.
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -361,12 +344,7 @@ function AgendarPage() {
             <Button asChild variant="ghost">
               <Link to="/">Cancelar</Link>
             </Button>
-            <Button
-              type="submit"
-              size="lg"
-              disabled={create.isPending}
-              className="min-w-40"
-            >
+            <Button type="submit" size="lg" disabled={create.isPending} className="min-w-40">
               {create.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -382,7 +360,6 @@ function AgendarPage() {
           </div>
         </form>
       </main>
-
     </div>
   );
 }
